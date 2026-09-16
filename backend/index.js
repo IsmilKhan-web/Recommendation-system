@@ -25,6 +25,31 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serverless-friendly MongoDB Connection Wrapper
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!mongoUri) {
+    console.error('CRITICAL: MONGODB_URI environment variable is missing!');
+    return;
+  }
+
+  try {
+    await mongoose.connect(mongoUri.trim());
+    console.log('MongoDB connected successfully');
+    await seedMasterAdmin();
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+  }
+};
+
+// Middleware to ensure DB is connected before handling any API request
+app.use(async (_req, _res, next) => {
+  await connectDB();
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/research-areas', researchAreaRoutes);
 app.use('/api/faculty', facultyRoutes);
@@ -36,20 +61,6 @@ app.use('/api/supervision-requests', supervisionRequestRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supervisor_match';
-
-// MongoDB Connection Logic
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-    return seedMasterAdmin();
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err.message);
-  });
 
 async function seedMasterAdmin() {
   try {
@@ -71,10 +82,9 @@ async function seedMasterAdmin() {
   }
 }
 
-// Local development ke liye listen karega
 if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-// Vercel Serverless Function ke liye Export (Zaroori Step)
 export default app;
