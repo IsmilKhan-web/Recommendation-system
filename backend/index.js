@@ -1,4 +1,4 @@
-import express from 'express';
+ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -20,7 +20,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.CLIENT_URL || '*',
   credentials: true,
 }));
 app.use(express.json());
@@ -38,34 +38,43 @@ app.use('/api/admin', adminRoutes);
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supervisor_match';
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supervisor_match';
 
+// MongoDB Connection Logic
 mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
     return seedMasterAdmin();
   })
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);
-    process.exit(1);
   });
 
 async function seedMasterAdmin() {
-  const email = 'admin@university.edu.pk';
-  const existing = await User.findOne({ email });
-  if (existing) return;
+  try {
+    const email = 'admin@university.edu.pk';
+    const existing = await User.findOne({ email });
+    if (existing) return;
 
-  const password = await bcrypt.hash('AdminPassword123!', 10);
-  await User.create({
-    full_name: 'Master Administrator',
-    email,
-    password,
-    role: 'admin',
-    department: '',
-  });
-  console.log(`Seeded master admin account: ${email}`);
+    const password = await bcrypt.hash('AdminPassword123!', 10);
+    await User.create({
+      full_name: 'Master Administrator',
+      email,
+      password,
+      role: 'admin',
+      department: '',
+    });
+    console.log(`Seeded master admin account: ${email}`);
+  } catch (error) {
+    console.error('Error seeding admin:', error.message);
+  }
 }
+
+// Local development ke liye listen karega
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+// Vercel Serverless Function ke liye Export (Zaroori Step)
+export default app;
