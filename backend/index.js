@@ -25,6 +25,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Flag to track seeding execution
+let isSeeded = false;
+
 // Serverless-friendly MongoDB Connection Wrapper
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
@@ -38,7 +41,11 @@ const connectDB = async () => {
   try {
     await mongoose.connect(mongoUri.trim());
     console.log('MongoDB connected successfully');
-    await seedMasterAdmin();
+
+    if (!isSeeded) {
+      await seedMasterAdmin();
+      isSeeded = true;
+    }
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
   }
@@ -78,6 +85,8 @@ async function seedMasterAdmin() {
     });
     console.log(`Seeded master admin account: ${email}`);
   } catch (error) {
+    // E11000 duplicate key error safety check
+    if (error.code === 11000) return;
     console.error('Error seeding admin:', error.message);
   }
 }
