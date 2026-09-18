@@ -14,10 +14,10 @@ app.use(cors());
 
 app.use('/api/auth', authRoutes);
 
-// DIRECT MONGOOSE CONNECTION SEED ROUTE
+// DIRECT CORRECT MONGO URI SEED ROUTE
 app.get('/api/seed-db', async (req, res) => {
   try {
-    // Exact MongoDB Connection String
+    // Exact Cluster URI (Cluster Hostname Fixed)
     const mongoUri = process.env.MONGO_URI || "mongodb+srv://Ismailkhan:mypassword123@cluster0.cmoiqi0.mongodb.net/Recommendation-system?retryWrites=true&w=majority";
 
     if (mongoose.connection.readyState !== 1) {
