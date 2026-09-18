@@ -9,26 +9,25 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(cors());
 
-// Database Connection
-const MONGO_URI = process.env.MONGO_URI;
-
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-}
-
-// Routes
 app.use('/api/auth', authRoutes);
 
-// LIVE DATABASE SEED ENDPOINT (Browser Se Execute Karne Ke Liye)
+// DIRECT CONNECTION STRING SEED ROUTE
 app.get('/api/seed-db', async (req, res) => {
   try {
+    // Apni `.env` file se MONGO_URI string check karke yahan paste karein agar alag hai
+    const mongoUri = process.env.MONGO_URI || "mongodb+srv://admin:bkuc123@cluster0.mongodb.net/recommendation_system?retryWrites=true&w=majority";
+
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 15000
+      });
+    }
+
     await seedDatabase();
+    
     res.status(200).json({ 
       success: true, 
       message: "Database seeded successfully with Admin and Faculty accounts!" 
@@ -42,7 +41,6 @@ app.get('/api/seed-db', async (req, res) => {
   }
 });
 
-// Root Route
 app.get('/', (req, res) => {
   res.send('Recommendation System Backend API is running...');
 });
