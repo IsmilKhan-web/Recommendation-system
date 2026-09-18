@@ -14,11 +14,11 @@ app.use(cors());
 
 app.use('/api/auth', authRoutes);
 
-// DIRECT CONNECTION STRING SEED ROUTE
+// DIRECT MONGOOSE CONNECTION SEED ROUTE
 app.get('/api/seed-db', async (req, res) => {
   try {
-    // Apni `.env` file se MONGO_URI string check karke yahan paste karein agar alag hai
-    const mongoUri = process.env.MONGO_URI || "mongodb+srv://admin:bkuc123@cluster0.mongodb.net/recommendation_system?retryWrites=true&w=majority";
+    // Exact MongoDB Connection String
+    const mongoUri = process.env.MONGO_URI || "mongodb+srv://Ismailkhan:mypassword123@cluster0.cmoiqi0.mongodb.net/Recommendation-system?retryWrites=true&w=majority";
 
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(mongoUri, {
