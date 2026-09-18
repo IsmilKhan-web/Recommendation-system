@@ -1,18 +1,16 @@
- import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import User from './models/User.js'; // Apne User model ka sahi path check kar lein
+ import bcrypt from 'bcryptjs';
+import User from './models/User.js';
 
 export const seedDatabase = async () => {
   try {
     const adminEmail = "admin@bkuc.edu.pk";
     const facultyEmail = "sarah.chen@university.edu";
 
-    // Pehle check karein ke accounts pehle se toh nahi bane hue
     const existingAdmin = await User.findOne({ email: adminEmail });
     if (!existingAdmin) {
       const hashedAdminPassword = await bcrypt.hash("bkuc123", 10);
       await User.create({
-        name: "System Admin",
+        full_name: "System Admin",
         email: adminEmail,
         password: hashedAdminPassword,
         role: "admin"
@@ -24,7 +22,7 @@ export const seedDatabase = async () => {
     if (!existingFaculty) {
       const hashedFacultyPassword = await bcrypt.hash("DemoFaculty2026!", 10);
       await User.create({
-        name: "Dr. Sarah Chen",
+        full_name: "Dr. Sarah Chen",
         email: facultyEmail,
         password: hashedFacultyPassword,
         role: "faculty",
