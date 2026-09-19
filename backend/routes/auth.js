@@ -21,24 +21,26 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
-      full_name: fullName,
-      email,
+      full_name: fullName.trim(),
+      email: normalizedEmail,
       password: hashed,
       role,
       department: department || '',
     });
 
     const token = signToken(user);
-    const profile = user.toJSON();
-    return res.status(201).json({ token, profile });
+    return res.status(201).json({ token, profile: user.toJSON() });
   } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ error: 'Email already registered' });
     return res.status(500).json({ error: err.message });
   }
 });
@@ -47,13 +49,17 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password, role: requestedRole } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password required' });
     }
     if (!['student', 'faculty', 'admin'].includes(requestedRole)) {
       return res.status(400).json({ error: 'A valid role is required' });
     }
-    const user = await User.findOne({ email: email.toLowerCase() });
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(403).json({ error: 'Access Denied: You are not an authorized user.' });
     }
@@ -63,19 +69,22 @@ router.post('/login', async (req, res) => {
     if (requestedRole !== user.role) {
       return res.status(403).json({ error: `This account is not registered as ${requestedRole}.` });
     }
-    if (user.role === 'faculty') {
-      const authorized = await AuthorizedUser.exists({ email: user.email, role: 'faculty' });
+
+    // Faculty and admin must exist in the AuthorizedUser collection
+    if (user.role === 'faculty' || user.role === 'admin') {
+      const authorized = await AuthorizedUser.exists({ email: normalizedEmail, role: user.role });
       if (!authorized) {
         return res.status(403).json({ error: 'Access Denied: You are not an authorized user.' });
       }
     }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
     const token = signToken(user);
-    const profile = user.toJSON();
-    return res.json({ token, profile });
+    return res.json({ token, profile: user.toJSON() });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
