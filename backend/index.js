@@ -1,39 +1,38 @@
- import bcrypt from 'bcryptjs';
-import User from './models/User.js';
+ import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import { seedDatabase } from './seed.js';
 
-export const seedDatabase = async () => {
-  try {
-    const adminEmail = "admin@bkuc.edu.pk";
-    const facultyEmail = "sarah.chen@university.edu";
+dotenv.config();
 
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    if (!existingAdmin) {
-      const hashedAdminPassword = await bcrypt.hash("bkuc123", 10);
-      await User.create({
-        full_name: "System Admin",
-        email: adminEmail,
-        password: hashedAdminPassword,
-        role: "admin"
-      });
-      console.log("Admin account created.");
+const app = express();
+
+// CORS Proper Configuration
+const allowedOrigins = [
+  'https://recommendation-system-eosin.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for public API testing
     }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
-    const existingFaculty = await User.findOne({ email: facultyEmail });
-    if (!existingFaculty) {
-      const hashedFacultyPassword = await bcrypt.hash("DemoFaculty2026!", 10);
-      await User.create({
-        full_name: "Dr. Sarah Chen",
-        email: facultyEmail,
-        password: hashedFacultyPassword,
-        role: "faculty",
-        department: "Computer Science"
-      });
-      console.log("Faculty account created.");
-    }
+// Preflight OPTIONS Request Handling
+app.options('*', cors());
 
-    return true;
-  } catch (error) {
-    console.error("Seed error:", error);
-    throw error;
-  }
-};
+app.use(express.json());
+
+app.use('/api/auth', authRoutes);
+
+// Baki ka aapka seed-db aur routes logic...
