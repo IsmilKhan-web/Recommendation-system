@@ -3,23 +3,26 @@ import User from '../models/User.js';
 
 const router = Router();
 
-// POST /api/recommendations/search YA /api/search
-router.post('/', async (req, res) => {
+// POST /api/recommendations/match OR /api/recommendations/search
+router.post('/match', async (req, res) => {
   try {
-    const { query, minMatch, excludeFull } = req.body;
+    const { topic, query, minMatch = 0, excludeFull = false } = req.body;
+    const searchTerms = topic || query || '';
 
-    let filter = { role: 'faculty' };
-    
-    // Fetch faculty members from DB
-    const faculty = await User.find(filter);
+    // Faculty members fetch karein
+    let facultyMembers = await User.find({ role: 'faculty' });
 
-    // Simple matching or TF-IDF logic
-    res.json({
+    if (excludeFull) {
+      facultyMembers = facultyMembers.filter(f => (f.max_students || 5) > (f.current_students || 0));
+    }
+
+    return res.json({
       success: true,
-      data: faculty
+      matches: facultyMembers,
+      results: facultyMembers
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
