@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 
-// 1. CORS Setup for Vercel
+// CORS Configuration
 const allowedOrigins = [
   'https://recommendation-system-eosin.vercel.app',
   'http://localhost:5173',
@@ -21,7 +21,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Fallback for public testing
+      callback(null, true);
     }
   },
   credentials: true,
@@ -29,31 +29,35 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Pre-flight OPTIONS handling
 app.options('*', cors());
-
 app.use(express.json());
 
-// MongoDB Connection Middleware for Vercel Serverless
+// Safe Database Connection Helper
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
-  const mongoUri = process.env.MONGO_URI || "mongodb+srv://Ismailkhan:mypassword123@cluster0.cmoiqi0.mongodb.net/Recommendation-system?retryWrites=true&w=majority";
-  await mongoose.connect(mongoUri);
+  
+  const mongoUri = process.env.MONGO_URI || "mongodb+srv://Ismailkhan:bkuc12345@cluster0.cmoiqi0.mongodb.net/Recommendation-system?retryWrites=true&w=majority";
+  
+  try {
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log("MongoDB connected successfully");
+  } catch (error) {
+    console.error("MongoDB Connection Error:", error);
+  }
 };
 
+// Middleware to ensure DB connection before handling API routes
 app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    console.error("Database Connection Error:", err);
-    res.status(500).json({ success: false, message: "Database connection error" });
-  }
+  await connectDB();
+  next();
 });
 
-// Routes
+// Auth Routes
 app.use('/api/auth', authRoutes);
 
+// Seed Route
 app.get('/api/seed-db', async (req, res) => {
   try {
     await seedDatabase();
