@@ -40,14 +40,19 @@ app.use(cors({
 // 3. Middleware
 app.use(express.json({ limit: '10mb' }));
 
-// 4. Ensure every serverless invocation has a live DB connection
-app.use(async (_req, _res, next) => {
+// 4. Ensure every serverless invocation has a live DB connection.
+//    If the DB is unreachable, fail the request with 503 instead of
+//    letting Mongoose buffer until the 10s timeout.
+app.use(async (_req, res, next) => {
   try {
     await connectDB();
+    next();
   } catch (err) {
     console.error('DB connection error:', err.message);
+    return res.status(503).json({
+      error: 'Database is temporarily unavailable. Please try again in a moment.',
+    });
   }
-  next();
 });
 
 // 5. Routes

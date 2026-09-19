@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { connectDB } from '../config/db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
@@ -14,6 +15,9 @@ export async function verifyToken(req, res, next) {
   }
   const token = header.slice(7);
   try {
+    // Ensure DB is connected before issuing any query — prevents
+    // "buffering timed out after 10000ms" on Vercel cold starts.
+    await connectDB();
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
