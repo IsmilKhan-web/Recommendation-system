@@ -1,7 +1,7 @@
-import express from 'express';
+ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
+import connectDB from './config/db.js';
 
 import authRoutes from './routes/auth.js';
 import facultyRoutes from './routes/faculty.js';
@@ -82,8 +82,13 @@ const PORT = process.env.PORT || 5000;
 
 // Only listen if running locally (not as Vercel serverless export)
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    try {
+      await connectDB();
+    } catch (err) {
+      console.error('Startup DB connection failed:', err.message);
+    }
   });
 }
 
