@@ -4,8 +4,8 @@
   SupervisionRequest,
 } from '../types';
 
-// Live Vercel Backend Direct URL (Hardcoded to prevent double-domain concatenation)
-const API_URL = 'https://recommendation-system-gkxe.vercel.app/api';
+// Updated to Local Backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export function setToken(token: string | null) {
   if (token) localStorage.setItem('token', token);
