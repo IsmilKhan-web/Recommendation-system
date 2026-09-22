@@ -2,20 +2,21 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Current directory resolve karein (ES Modules ke liye)
+// 1. ES Modules ke liye path resolve karein
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Explicitly backend folder ki .env load karein
+// 2. IMPORTANT: dotenv ko baaqi local routes/configs se PEHLE config karein
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 import express from 'express';
 import cors from 'cors';
+
+// Debugging line (Ab yeh 'FOUND' dikhayega)
+console.log('Loaded MONGODB_URI:', process.env.MONGODB_URI ? 'FOUND' : 'UNDEFINED');
+
 import connectDB from './config/db.js';
 import { seedDatabase } from './seed.js';
-
-// Debugging line
-console.log('Loaded MONGODB_URI:', process.env.MONGODB_URI ? 'FOUND' : 'UNDEFINED');
 
 import authRoutes from './routes/auth.js';
 import facultyRoutes from './routes/faculty.js';
