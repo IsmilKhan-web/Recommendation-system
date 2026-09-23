@@ -1,20 +1,14 @@
- import dotenv from 'dotenv';
+      import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 1. ES Modules ke liye path resolve karein
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 2. IMPORTANT: dotenv ko baaqi local routes/configs se PEHLE config karein
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 import express from 'express';
 import cors from 'cors';
-
-// Debugging line (Ab yeh 'FOUND' dikhayega)
-console.log('Loaded MONGODB_URI:', process.env.MONGODB_URI ? 'FOUND' : 'UNDEFINED');
-
 import connectDB from './config/db.js';
 import { seedDatabase } from './seed.js';
 
@@ -30,18 +24,20 @@ import adminRoutes from './routes/admin.js';
 
 const app = express();
 
-const allowedOrigins = [
-  'https://recommendation-system-eosin.vercel.app',
-  'https://recommendation-system-gkxe.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
+// Middleware: Har Serverless API Request par DB Connection Ensure Karein
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database Connection Error in Middleware:', err.message);
+    next(err);
+  }
+});
 
+// CORS Configuration
 app.use(cors({
-  origin(origin, cb) {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(null, true);
-  },
+  origin: true, // Sabhi frontend origins ko allow karta hai (Vercel deployments ke liye best hai)
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Info', 'Apikey'],
   credentials: true,
@@ -71,7 +67,7 @@ app.use('/api/supervision-requests', supervisionRequestRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/', (_req, res) => {
-  res.json({ status: 'ok', message: 'Supervisor Recommendation API is running.' });
+  res.json({ status: 'ok', message: 'Supervisor Recommendation API is running on Vercel.' });
 });
 
 app.use((_req, res) => {
@@ -83,15 +79,12 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-  try {
-    await connectDB();
-  } catch (err) {
-    console.error('Startup DB connection failed:', err.message);
-  }
-});
+// Local Development Server (Vercel Serverless Function ise bypass karega)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running locally on port ${PORT}`);
+  });
+}
 
 export default app;
